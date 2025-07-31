@@ -18,6 +18,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     
+    services:
+      postgres:
+        image: agnohq/pgvector:16
+        env:
+          POSTGRES_DB: ai
+          POSTGRES_USER: ai
+          POSTGRES_PASSWORD: ai
+          PGDATA: /var/lib/postgresql/data/pgdata
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     steps:
     - uses: actions/checkout@v4
     
@@ -46,6 +62,12 @@ jobs:
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         AGNO_DEBUG: true
+        # Database configuration for CI
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USER: ai
+        DB_PASS: ai
+        DB_DATABASE: ai
     
     - name: Upload Agent Test Results
       uses: actions/upload-artifact@v4
@@ -60,6 +82,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: test-agents
+    
+    services:
+      postgres:
+        image: agnohq/pgvector:16
+        env:
+          POSTGRES_DB: ai
+          POSTGRES_USER: ai
+          POSTGRES_PASSWORD: ai
+          PGDATA: /var/lib/postgresql/data/pgdata
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     
     steps:
     - uses: actions/checkout@v4
@@ -89,6 +127,12 @@ jobs:
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         AGNO_DEBUG: true
+        # Database configuration for CI
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USER: ai
+        DB_PASS: ai
+        DB_DATABASE: ai
     
     - name: Upload Team Test Results
       uses: actions/upload-artifact@v4
@@ -103,6 +147,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: [test-agents, test-teams]
+    
+    services:
+      postgres:
+        image: agnohq/pgvector:16
+        env:
+          POSTGRES_DB: ai
+          POSTGRES_USER: ai
+          POSTGRES_PASSWORD: ai
+          PGDATA: /var/lib/postgresql/data/pgdata
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     
     steps:
     - uses: actions/checkout@v4
@@ -132,6 +192,12 @@ jobs:
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         AGNO_DEBUG: true
+        # Database configuration for CI
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USER: ai
+        DB_PASS: ai
+        DB_DATABASE: ai
     
     - name: Upload System Test Results
       uses: actions/upload-artifact@v4
@@ -146,6 +212,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: [test-agents, test-teams, test-system-integration]
+    
+    services:
+      postgres:
+        image: agnohq/pgvector:16
+        env:
+          POSTGRES_DB: ai
+          POSTGRES_USER: ai
+          POSTGRES_PASSWORD: ai
+          PGDATA: /var/lib/postgresql/data/pgdata
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     
     steps:
     - uses: actions/checkout@v4
@@ -176,6 +258,12 @@ jobs:
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         AGNO_DEBUG: false
+        # Database configuration for CI
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USER: ai
+        DB_PASS: ai
+        DB_DATABASE: ai
     
     - name: Generate Test Report
       if: always()
@@ -258,6 +346,22 @@ jobs:
     timeout-minutes: 30
     if: github.event_name == 'schedule' || contains(github.event.head_commit.message, '[perf-test]')
     
+    services:
+      postgres:
+        image: agnohq/pgvector:16
+        env:
+          POSTGRES_DB: ai
+          POSTGRES_USER: ai
+          POSTGRES_PASSWORD: ai
+          PGDATA: /var/lib/postgresql/data/pgdata
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
     steps:
     - uses: actions/checkout@v4
     
@@ -278,6 +382,12 @@ jobs:
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         AGNO_DEBUG: false
+        # Database configuration for CI
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USER: ai
+        DB_PASS: ai
+        DB_DATABASE: ai
     
     - name: Upload Performance Results
       uses: actions/upload-artifact@v4
