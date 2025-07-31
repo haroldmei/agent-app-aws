@@ -1,0 +1,316 @@
+name: Agentic AI Quality Assurance
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run nightly tests at 2 AM UTC
+    - cron: '0 2 * * *'
+
+env:
+  PYTHON_VERSION: '3.12'
+  
+jobs:
+  test-agents:
+    name: Test Individual Agents
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio
+    
+    - name: Run Agent Tests
+      run: |
+        python tests/run_ci.py --test-type sage --output-dir test_results/agents
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        AGNO_DEBUG: true
+    
+    - name: Upload Agent Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: agent-test-results
+        path: test_results/agents/
+        retention-days: 30
+
+  test-teams:
+    name: Test Team Orchestration
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: test-agents
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio
+    
+    - name: Run Team Tests
+      run: |
+        python tests/run_ci.py --test-type teams --output-dir test_results/teams
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        AGNO_DEBUG: true
+    
+    - name: Upload Team Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: team-test-results
+        path: test_results/teams/
+        retention-days: 30
+
+  test-system-integration:
+    name: System Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: [test-agents, test-teams]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio
+    
+    - name: Run System Integration Tests
+      run: |
+        python tests/run_ci.py --test-type system --output-dir test_results/system
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        AGNO_DEBUG: true
+    
+    - name: Upload System Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: system-test-results
+        path: test_results/system/
+        retention-days: 30
+
+  quality-gates:
+    name: Quality Gates & CI Decision
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [test-agents, test-teams, test-system-integration]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio
+    
+    - name: Run CI Test Suite
+      id: ci_tests
+      run: |
+        python tests/run_ci.py --test-type ci --output-dir test_results/ci --generate-datasets
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        AGNO_DEBUG: false
+    
+    - name: Generate Test Report
+      if: always()
+      run: |
+        python -c "
+        import json
+        from pathlib import Path
+        
+        # Load CI results
+        ci_report = Path('test_results/ci/ci_report.json')
+        if ci_report.exists():
+            with open(ci_report) as f:
+                report = json.load(f)
+            
+            # Generate markdown summary
+            summary = f'''
+        ## 🤖 Agentic AI Test Results
+        
+        **Build Status:** {report['ci_summary']['build_status']}
+        
+        ### 📊 Test Summary
+        - **Total Tests:** {report['ci_summary']['total_tests']}
+        - **Passed:** {report['ci_summary']['passed']}
+        - **Failed:** {report['ci_summary']['failed']}
+        - **Pass Rate:** {report['ci_summary']['pass_rate']:.1%}
+        - **Execution Time:** {report['ci_summary']['execution_time']:.2f}s
+        
+        ### 🚪 Quality Gates
+        '''
+            
+            for gate_name, gate_info in report.get('quality_gates', {}).items():
+                status = '✅ PASS' if gate_info['passed'] else '❌ FAIL'
+                summary += f'- **{gate_info['name']}:** {status} (Actual: {gate_info['actual']}, Threshold: {gate_info['threshold']})\n'
+            
+            if report.get('recommendations'):
+                summary += '\n### 💡 Recommendations\n'
+                for rec in report['recommendations']:
+                    summary += f'- {rec}\n'
+            
+            # Save summary
+            with open('test_results/ci/summary.md', 'w') as f:
+                f.write(summary)
+        "
+    
+    - name: Upload CI Test Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: ci-test-results
+        path: test_results/ci/
+        retention-days: 90
+    
+    - name: Comment Test Results on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const path = require('path');
+          
+          try {
+            const summaryPath = 'test_results/ci/summary.md';
+            if (fs.existsSync(summaryPath)) {
+              const summary = fs.readFileSync(summaryPath, 'utf8');
+              
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: summary
+              });
+            }
+          } catch (error) {
+            console.log('Could not post test results comment:', error);
+          }
+
+  performance-tests:
+    name: Performance & Load Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'schedule' || contains(github.event.head_commit.message, '[perf-test]')
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-asyncio
+    
+    - name: Run Performance Tests
+      run: |
+        python tests/run_ci.py --test-type performance --output-dir test_results/performance
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        AGNO_DEBUG: false
+    
+    - name: Upload Performance Results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: performance-test-results
+        path: test_results/performance/
+        retention-days: 30
+
+  security-scan:
+    name: Security & Privacy Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Run Bandit Security Scan
+      run: |
+        pip install bandit[toml]
+        bandit -r . -f json -o security-report.json || true
+    
+    - name: Run Safety Check
+      run: |
+        pip install safety
+        safety check --json --output safety-report.json || true
+    
+    - name: Upload Security Reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          security-report.json
+          safety-report.json
+        retention-days: 90

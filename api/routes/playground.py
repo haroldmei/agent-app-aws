@@ -21,7 +21,7 @@ multi_language_team = get_multi_language_team(debug_mode=True)
 playground = Playground(agents=[sage_agent, scholar_agent], teams=[finance_researcher_team, multi_language_team])
 
 # Register the endpoint where playground routes are served with agno.com
-if getenv("RUNTIME_ENV") == "dev":
-    playground.serve(f"http://localhost:{dev_fastapi.host_port}")
+#if getenv("RUNTIME_ENV") == "dev":
+#    playground.serve(f"http://localhost:{dev_fastapi.host_port}")
 
 playground_router = playground.get_async_router()

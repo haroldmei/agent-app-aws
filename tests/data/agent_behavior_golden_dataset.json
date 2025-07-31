@@ -1,0 +1,54 @@
+{
+  "name": "Agent Behavior Golden Dataset",
+  "description": "Test cases for validating individual agent behavior",
+  "version": "1.0",
+  "test_cases": [
+    {
+      "input_data": {
+        "message": "Book me a flight from NYC to LAX tomorrow",
+        "user_preferences": {
+          "class": "economy",
+          "airline": "any"
+        }
+      },
+      "expected_output": {
+        "booking_attempted": true,
+        "tools_used": [
+          "flight_search",
+          "booking_api"
+        ],
+        "response_type": "booking_confirmation"
+      },
+      "metadata": {
+        "scenario": "simple_booking",
+        "complexity": "low"
+      }
+    },
+    {
+      "input_data": {
+        "message": "Find me a restaurant in Paris that serves vegetarian food and is open late",
+        "constraints": {
+          "location": "Paris",
+          "diet": "vegetarian",
+          "time": "late"
+        }
+      },
+      "expected_output": {
+        "search_performed": true,
+        "tools_used": [
+          "restaurant_search",
+          "maps_api"
+        ],
+        "filters_applied": [
+          "vegetarian",
+          "late_hours",
+          "Paris"
+        ]
+      },
+      "metadata": {
+        "scenario": "complex_search",
+        "complexity": "medium"
+      }
+    }
+  ]
+}

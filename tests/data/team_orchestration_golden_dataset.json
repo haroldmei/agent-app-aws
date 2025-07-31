@@ -1,0 +1,47 @@
+{
+  "name": "Team Orchestration Golden Dataset",
+  "description": "Test cases for validating team coordination and collaboration",
+  "version": "1.0",
+  "test_cases": [
+    {
+      "input_data": {
+        "request": "Generate a financial report for AAPL stock",
+        "team_type": "finance_researcher"
+      },
+      "expected_output": {
+        "report_generated": true,
+        "agents_involved": [
+          "data_analyst",
+          "report_writer"
+        ],
+        "sections": [
+          "executive_summary",
+          "financial_analysis",
+          "recommendations"
+        ]
+      },
+      "metadata": {
+        "scenario": "multi_agent_collaboration",
+        "domain": "finance"
+      }
+    },
+    {
+      "input_data": {
+        "request": "Translate this document to Spanish and summarize it",
+        "team_type": "multi_language"
+      },
+      "expected_output": {
+        "translation_completed": true,
+        "summary_generated": true,
+        "agents_involved": [
+          "translator",
+          "summarizer"
+        ]
+      },
+      "metadata": {
+        "scenario": "sequential_processing",
+        "domain": "language"
+      }
+    }
+  ]
+}

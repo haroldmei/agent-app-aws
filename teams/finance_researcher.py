@@ -11,6 +11,9 @@ from agno.tools.yfinance import YFinanceTools
 from db.session import db_url
 from teams.settings import team_settings
 
+print(db_url)
+# postgresql+psycopg://ai:ai@localhost:5432/ai
+
 finance_agent = Agent(
     name="Finance Agent",
     role="Analyze financial data",

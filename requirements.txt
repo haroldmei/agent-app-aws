@@ -54,7 +54,7 @@ mdurl==0.1.2
 multitasking==0.0.11
 narwhals==1.39.0
 nest-asyncio==1.6.0
-newspaper4k==0.9.3.1
+newspaper4k
 nltk==3.9.1
 numpy==2.2.5
 openai==1.78.1

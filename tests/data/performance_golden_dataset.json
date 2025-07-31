@@ -1,0 +1,36 @@
+{
+  "name": "Performance Golden Dataset",
+  "description": "Test cases for validating system performance and scalability",
+  "version": "1.0",
+  "test_cases": [
+    {
+      "input_data": {
+        "query": "Simple query for latency test",
+        "expected_response_time": 2.0
+      },
+      "expected_output": {
+        "response_received": true,
+        "response_time_met": true
+      },
+      "metadata": {
+        "test_type": "latency",
+        "threshold": 2.0
+      }
+    },
+    {
+      "input_data": {
+        "concurrent_queries": 10,
+        "query": "Load test query",
+        "expected_throughput": 5.0
+      },
+      "expected_output": {
+        "all_queries_processed": true,
+        "throughput_met": true
+      },
+      "metadata": {
+        "test_type": "throughput",
+        "concurrent_users": 10
+      }
+    }
+  ]
+}

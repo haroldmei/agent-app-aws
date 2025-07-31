@@ -11,11 +11,11 @@ class DbSettings(BaseSettings):
     """
 
     # Database configuration
-    db_host: Optional[str] = None
-    db_port: Optional[int] = None
-    db_user: Optional[str] = None
-    db_pass: Optional[str] = None
-    db_database: Optional[str] = None
+    db_host: Optional[str] = "172.29.208.1"
+    db_port: Optional[int] = 5432
+    db_user: Optional[str] = 'ai'
+    db_pass: Optional[str] = 'ai'
+    db_database: Optional[str] = 'ai'
     db_driver: str = "postgresql+psycopg"
     # Create/Upgrade database on startup using alembic
     migrate_db: bool = False

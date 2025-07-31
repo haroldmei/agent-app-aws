@@ -1,0 +1,39 @@
+{
+  "name": "RAG Validation Golden Dataset",
+  "description": "Test cases for validating RAG system performance",
+  "version": "1.0",
+  "test_cases": [
+    {
+      "input_data": {
+        "query": "What is artificial intelligence?"
+      },
+      "expected_output": {
+        "answer": "Artificial intelligence (AI) is a field of computer science focused on creating systems that can perform tasks typically requiring human intelligence.",
+        "tools_used": [
+          "search_knowledge_base"
+        ]
+      },
+      "context": "Artificial intelligence (AI) is a field of computer science focused on creating systems that can perform tasks typically requiring human intelligence, such as learning, reasoning, and perception.",
+      "metadata": {
+        "category": "definition",
+        "difficulty": "basic"
+      }
+    },
+    {
+      "input_data": {
+        "query": "How does machine learning work?"
+      },
+      "expected_output": {
+        "answer": "Machine learning works by training algorithms on data to recognize patterns and make predictions.",
+        "tools_used": [
+          "search_knowledge_base"
+        ]
+      },
+      "context": "Machine learning is a subset of AI that uses statistical techniques to give computers the ability to learn from data without being explicitly programmed.",
+      "metadata": {
+        "category": "explanation",
+        "difficulty": "intermediate"
+      }
+    }
+  ]
+}
