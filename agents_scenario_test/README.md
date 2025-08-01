@@ -288,4 +288,29 @@ Consider adding performance-focused tests:
 - **Memory Usage**: Monitor conversation memory efficiency
 - **Quality Metrics**: Track consistency and accuracy over time
 
+## Troubleshooting
+
+### Common Issues and Resolutions
+
+#### OpenAI API Message Format Errors
+If tests fail with `Invalid parameter: messages with role 'tool' must be a response to a preceeding message with 'tool_calls'`:
+
+- **Root Cause**: Tool messages without proper `tool_call_id` or malformed message sequences
+- **Resolution**: The agent adapters in `conftest.py` have been updated to properly format OpenAI messages according to their conversation flow requirements
+- **Prevention**: Message formatting logic validates tool message structure before including them
+
+#### Memory API Compatibility
+For errors like `'Memory' object has no attribute 'messages'`:
+
+- **Root Cause**: Incompatibility between agno Memory v2 API and legacy AgentMemory
+- **Resolution**: Dynamic detection and compatibility layer implemented in agent adapters
+- **Usage**: Adapters automatically detect the memory type and use appropriate API methods
+
+#### Database Migration Issues
+CI errors related to `alembic upgrade` path problems:
+
+- **Root Cause**: Incorrect relative paths in migration commands
+- **Resolution**: Migration commands now use absolute paths from project root
+- **Command**: `alembic -c db/alembic.ini upgrade head`
+
 This test suite ensures comprehensive validation of agent capabilities while maintaining the flexibility and power of the langwatch scenario framework.

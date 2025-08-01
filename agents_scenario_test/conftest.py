@@ -64,20 +64,29 @@ class SageAdapter(scenario.AgentAdapter):
             if hasattr(message, 'role') and hasattr(message, 'content'):
                 formatted_msg = {
                     "role": message.role,
-                    "content": str(message.content)
+                    "content": str(message.content) if message.content is not None else ""
                 }
-                if hasattr(message, 'tools') and message.tools:
-                    formatted_msg["tool_calls"] = message.tools
-                openai_formatted_messages.append(formatted_msg)
+                
+                # Handle tool calls properly for assistant messages
+                if message.role == "assistant" and hasattr(message, 'tool_calls') and message.tool_calls:
+                    formatted_msg["tool_calls"] = message.tool_calls
+                
+                # Handle tool messages properly  
+                elif message.role == "tool" and hasattr(message, 'tool_call_id') and message.tool_call_id:
+                    formatted_msg["tool_call_id"] = message.tool_call_id
+                
+                # Only include messages with valid content or proper tool structure
+                if (formatted_msg["content"] or 
+                    (message.role == "assistant" and formatted_msg.get("tool_calls")) or
+                    (message.role == "tool" and formatted_msg.get("tool_call_id"))):
+                    openai_formatted_messages.append(formatted_msg)
         
-        # If no new messages, create one from the result
+        # If no valid new messages, create one from the result
         if not openai_formatted_messages and result:
             formatted_msg = {
                 "role": "assistant",
-                "content": str(result.content) if result.content else ""
+                "content": str(result.content) if hasattr(result, 'content') and result.content else str(result)
             }
-            if hasattr(result, 'tools') and result.tools:
-                formatted_msg["tool_calls"] = result.tools
             openai_formatted_messages.append(formatted_msg)
         
         return openai_formatted_messages
@@ -131,20 +140,29 @@ class ScholarAdapter(scenario.AgentAdapter):
             if hasattr(message, 'role') and hasattr(message, 'content'):
                 formatted_msg = {
                     "role": message.role,
-                    "content": str(message.content)
+                    "content": str(message.content) if message.content is not None else ""
                 }
-                if hasattr(message, 'tools') and message.tools:
-                    formatted_msg["tool_calls"] = message.tools
-                openai_formatted_messages.append(formatted_msg)
+                
+                # Handle tool calls properly for assistant messages
+                if message.role == "assistant" and hasattr(message, 'tool_calls') and message.tool_calls:
+                    formatted_msg["tool_calls"] = message.tool_calls
+                
+                # Handle tool messages properly  
+                elif message.role == "tool" and hasattr(message, 'tool_call_id') and message.tool_call_id:
+                    formatted_msg["tool_call_id"] = message.tool_call_id
+                
+                # Only include messages with valid content or proper tool structure
+                if (formatted_msg["content"] or 
+                    (message.role == "assistant" and formatted_msg.get("tool_calls")) or
+                    (message.role == "tool" and formatted_msg.get("tool_call_id"))):
+                    openai_formatted_messages.append(formatted_msg)
         
-        # If no new messages, create one from the result
+        # If no valid new messages, create one from the result
         if not openai_formatted_messages and result:
             formatted_msg = {
                 "role": "assistant",
-                "content": str(result.content) if result.content else ""
+                "content": str(result.content) if hasattr(result, 'content') and result.content else str(result)
             }
-            if hasattr(result, 'tools') and result.tools:
-                formatted_msg["tool_calls"] = result.tools
             openai_formatted_messages.append(formatted_msg)
         
         return openai_formatted_messages
