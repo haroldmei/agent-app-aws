@@ -146,8 +146,7 @@ jobs:
 
     - name: Run Database Migrations
       run: |
-        cd db
-        alembic upgrade head
+        alembic -c db/alembic.ini upgrade head
       env:
         DB_HOST: localhost
         DB_PORT: 5432
@@ -265,8 +264,7 @@ jobs:
 
     - name: Run Database Migrations
       run: |
-        cd db
-        alembic upgrade head
+        alembic -c db/alembic.ini upgrade head
       env:
         DB_HOST: localhost
         DB_PORT: 5432
