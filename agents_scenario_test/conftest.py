@@ -34,14 +34,28 @@ class SageAdapter(scenario.AgentAdapter):
         )
         
         # Get current message count to track new messages
-        current_messages = agent.memory.messages if agent.memory else []
+        if agent.memory and hasattr(agent.memory, 'get_messages_from_last_n_runs'):
+            # Memory v2 approach
+            current_messages = agent.memory.get_messages_from_last_n_runs(input.thread_id)
+        elif agent.memory and hasattr(agent.memory, 'messages'):
+            # Legacy AgentMemory approach
+            current_messages = agent.memory.messages
+        else:
+            current_messages = []
         current_messages_count = len(current_messages)
         
         # Run the agent with the user message
         result = await agent.arun(input.last_new_user_message_str())
         
         # Get new messages after the run
-        new_messages = agent.memory.messages if agent.memory else []
+        if agent.memory and hasattr(agent.memory, 'get_messages_from_last_n_runs'):
+            # Memory v2 approach
+            new_messages = agent.memory.get_messages_from_last_n_runs(input.thread_id)
+        elif agent.memory and hasattr(agent.memory, 'messages'):
+            # Legacy AgentMemory approach
+            new_messages = agent.memory.messages
+        else:
+            new_messages = []
         new_messages_to_return = new_messages[current_messages_count:]
         
         # Format messages for langwatch
@@ -87,14 +101,28 @@ class ScholarAdapter(scenario.AgentAdapter):
         )
         
         # Get current message count to track new messages
-        current_messages = agent.memory.messages if agent.memory else []
+        if agent.memory and hasattr(agent.memory, 'get_messages_from_last_n_runs'):
+            # Memory v2 approach
+            current_messages = agent.memory.get_messages_from_last_n_runs(input.thread_id)
+        elif agent.memory and hasattr(agent.memory, 'messages'):
+            # Legacy AgentMemory approach
+            current_messages = agent.memory.messages
+        else:
+            current_messages = []
         current_messages_count = len(current_messages)
         
         # Run the agent with the user message
         result = await agent.arun(input.last_new_user_message_str())
         
         # Get new messages after the run
-        new_messages = agent.memory.messages if agent.memory else []
+        if agent.memory and hasattr(agent.memory, 'get_messages_from_last_n_runs'):
+            # Memory v2 approach
+            new_messages = agent.memory.get_messages_from_last_n_runs(input.thread_id)
+        elif agent.memory and hasattr(agent.memory, 'messages'):
+            # Legacy AgentMemory approach
+            new_messages = agent.memory.messages
+        else:
+            new_messages = []
         new_messages_to_return = new_messages[current_messages_count:]
         
         # Format messages for langwatch
