@@ -24,10 +24,10 @@ def run_tests(category: str = "all", agent_filter: str = "all", verbose: bool = 
     if category != "all":
         test_file_map = {
             "task": "test_task_completion.py",
-            "tool": "test_tool_interaction.py", 
+            "tool": "test_tool_interaction.py",
             "flow": "test_conversational_flow.py",
             "hallucination": "test_hallucination_detection.py",
-            "integration": "test_integration.py"
+            "integration": "test_integration.py",
         }
         if category in test_file_map:
             cmd.append(test_file_map[category])
@@ -59,7 +59,10 @@ def run_tests(category: str = "all", agent_filter: str = "all", verbose: bool = 
     # Add HTML report if pytest-html is available
     try:
         import pytest_html  # noqa: F401
-        cmd.extend(["--html", str(results_dir / "report.html"), "--self-contained-html"])
+
+        cmd.extend(
+            ["--html", str(results_dir / "report.html"), "--self-contained-html"]
+        )
     except ImportError:
         pass
     
@@ -71,21 +74,22 @@ def run_tests(category: str = "all", agent_filter: str = "all", verbose: bool = 
 def main():
     parser = argparse.ArgumentParser(description="Run agent scenario validation tests")
     parser.add_argument(
-        "--category", 
+        "--category",
         choices=["task", "tool", "flow", "hallucination", "integration", "all"],
         default="all",
-        help="Which test category to run (default: all)"
+        help="Which test category to run (default: all)",
     )
     parser.add_argument(
         "--agent",
         choices=["sage", "scholar", "all"],
         default="all",
-        help="Which agent to test (default: all)"
+        help="Which agent to test (default: all)",
     )
     parser.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
-        help="Verbose output"
+        help="Verbose output",
     )
     
     args = parser.parse_args()

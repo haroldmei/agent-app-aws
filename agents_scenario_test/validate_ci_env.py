@@ -20,10 +20,10 @@ def check_environment_variables() -> Dict[str, bool]:
         "OPENAI_API_KEY",
         "LANGWATCH_API_KEY",
         "DB_HOST",
-        "DB_PORT", 
+        "DB_PORT",
         "DB_USER",
         "DB_PASS",
-        "DB_DATABASE"
+        "DB_DATABASE",
     ]
     
     results = {}
@@ -82,11 +82,19 @@ def run_sample_test() -> bool:
         test_dir = Path(__file__).parent
         
         # Run a single test to validate setup
-        result = subprocess.run([
-            "python", "-m", "pytest", 
-            "test_task_completion.py::test_sage_knowledge_retrieval_task",
-            "-v", "--tb=short"
-        ], cwd=test_dir, capture_output=True, text=True)
+        result = subprocess.run(
+            [
+                "python",
+                "-m",
+                "pytest",
+                "test_task_completion.py::test_sage_knowledge_retrieval_task",
+                "-v",
+                "--tb=short",
+            ],
+            cwd=test_dir,
+            capture_output=True,
+            text=True,
+        )
         
         if result.returncode == 0:
             print("✅ Sample test passed!")

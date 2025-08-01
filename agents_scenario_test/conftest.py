@@ -21,6 +21,7 @@ class SageAdapter(scenario.AgentAdapter):
     
     def __init__(self):
         from agents.sage import get_sage
+
         self.agent_factory = get_sage
     
     async def call(self, input: scenario.AgentInput) -> scenario.AgentReturnTypes:
@@ -29,7 +30,7 @@ class SageAdapter(scenario.AgentAdapter):
             model_id="gpt-4o-mini",
             user_id=input.thread_id,
             session_id=input.thread_id,
-            debug_mode=False
+            debug_mode=False,
         )
         
         # Get current message count to track new messages
@@ -73,6 +74,7 @@ class ScholarAdapter(scenario.AgentAdapter):
     
     def __init__(self):
         from agents.scholar import get_scholar
+
         self.agent_factory = get_scholar
     
     async def call(self, input: scenario.AgentInput) -> scenario.AgentReturnTypes:
@@ -81,7 +83,7 @@ class ScholarAdapter(scenario.AgentAdapter):
             model_id="gpt-4o-mini",
             user_id=input.thread_id,
             session_id=input.thread_id,
-            debug_mode=False
+            debug_mode=False,
         )
         
         # Get current message count to track new messages

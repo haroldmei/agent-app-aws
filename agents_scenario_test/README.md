@@ -244,6 +244,21 @@ export RUNTIME_ENV="test"
 
 # Run tests with the test runner
 python run_tests.py --category=all --verbose
+
+# Check code formatting (recommended before commit)
+python format_check.py
+```
+
+#### Code Formatting
+```bash
+# Check formatting
+python -m ruff format . --check
+
+# Apply formatting fixes
+python -m ruff format .
+
+# Or use the helper script
+python format_check.py --fix
 ```
 
 #### Production Environment
