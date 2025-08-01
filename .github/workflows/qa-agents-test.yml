@@ -88,7 +88,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r agents_test/requirements.txt
-    
+
     - name: Wait for PostgreSQL
       run: |
         until pg_isready -h localhost -p 5432 -U ai; do
@@ -96,16 +96,13 @@ jobs:
           sleep 2
         done
         echo "PostgreSQL is ready!"
-    
+
     - name: Run Agent Tests
       run: |
         cd agents_test
         python -m pytest \
           -k "${{ matrix.agent }}" \
           --tb=short \
-          --junit-xml=../test_results/agents_test/${{ matrix.agent }}_${{ matrix.category }}/junit.xml \
-          --html=../test_results/agents_test/${{ matrix.agent }}_${{ matrix.category }}/report.html \
-          --self-contained-html \
           -v
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -116,233 +113,18 @@ jobs:
         DB_USER: ai
         DB_PASS: ai
         DB_DATABASE: ai
-    
-    - name: Upload Test Results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: agents-test-results-${{ matrix.agent }}-${{ matrix.category }}
-        path: test_results/agents_test/${{ matrix.agent }}_${{ matrix.category }}/
-        retention-days: 30
 
   agents-test-summary:
-    name: Agent Test Summary & Quality Gates
+    name: Agent Test Summary
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     needs: test-agents-comprehensive
     if: always()
     
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-    
-    - name: Download all test results
-      uses: actions/download-artifact@v4
-      with:
-        pattern: agents-test-results-*
-        path: test_results/agents_test/
-        merge-multiple: true
-    
-    - name: Generate Comprehensive Test Report
+    - name: Test Summary
       run: |
-        python -c "
-        import json
-        import xml.etree.ElementTree as ET
-        from pathlib import Path
-        import glob
-        
-        # Collect all JUnit XML files
-        junit_files = glob.glob('test_results/agents_test/**/junit.xml', recursive=True)
-        
-        total_tests = 0
-        total_failures = 0
-        total_errors = 0
-        total_time = 0.0
-        agent_results = {}
-        category_results = {}
-        
-        for junit_file in junit_files:
-            try:
-                tree = ET.parse(junit_file)
-                root = tree.getroot()
-                
-                tests = int(root.get('tests', 0))
-                failures = int(root.get('failures', 0))
-                errors = int(root.get('errors', 0))
-                time = float(root.get('time', 0))
-                
-                total_tests += tests
-                total_failures += failures
-                total_errors += errors
-                total_time += time
-                
-                # Extract agent and category from path
-                path_parts = Path(junit_file).parts
-                if len(path_parts) >= 4:
-                    test_name = path_parts[-2]  # e.g., 'sage_agentic-behavior'
-                    if '_' in test_name:
-                        agent, category = test_name.split('_', 1)
-                        
-                        if agent not in agent_results:
-                            agent_results[agent] = {'tests': 0, 'failures': 0, 'errors': 0}
-                        agent_results[agent]['tests'] += tests
-                        agent_results[agent]['failures'] += failures
-                        agent_results[agent]['errors'] += errors
-                        
-                        if category not in category_results:
-                            category_results[category] = {'tests': 0, 'failures': 0, 'errors': 0}
-                        category_results[category]['tests'] += tests
-                        category_results[category]['failures'] += failures
-                        category_results[category]['errors'] += errors
-                        
-            except Exception as e:
-                print(f'Error parsing {junit_file}: {e}')
-        
-        # Calculate metrics
-        passed = total_tests - total_failures - total_errors
-        pass_rate = passed / total_tests if total_tests > 0 else 0
-        build_status = 'PASS' if total_failures == 0 and total_errors == 0 else 'FAIL'
-        
-        # Generate detailed summary
-        summary_lines = [
-            '## 🤖 Comprehensive Agent Test Results',
-            '',
-            f'**Build Status:** {\"✅ PASS\" if build_status == \"PASS\" else \"❌ FAIL\"}',
-            '',
-            '### 📊 Overall Test Summary',
-            f'- **Total Tests:** {total_tests}',
-            f'- **Passed:** {passed}',
-            f'- **Failed:** {total_failures + total_errors}',
-            f'- **Pass Rate:** {pass_rate:.1%}',
-            f'- **Execution Time:** {total_time:.2f}s',
-            '',
-            '### 🔍 Agent-Specific Results'
-        ]
-        
-        for agent, results in agent_results.items():
-            agent_passed = results['tests'] - results['failures'] - results['errors']
-            agent_pass_rate = agent_passed / results['tests'] if results['tests'] > 0 else 0
-            agent_status = '✅' if results['failures'] == 0 and results['errors'] == 0 else '❌'
-            summary_lines.append(f'- **{agent.title()} Agent:** {agent_status} {agent_pass_rate:.1%} ({agent_passed}/{results[\"tests\"]} passed)')
-        
-        summary_lines.extend([
-            '',
-            '### 🧪 Test Category Results'
-        ])
-        
-        for category, results in category_results.items():
-            cat_passed = results['tests'] - results['failures'] - results['errors']
-            cat_pass_rate = cat_passed / results['tests'] if results['tests'] > 0 else 0
-            cat_status = '✅' if results['failures'] == 0 and results['errors'] == 0 else '❌'
-            summary_lines.append(f'- **{category.replace(\"-\", \" \").title()}:** {cat_status} {cat_pass_rate:.1%} ({cat_passed}/{results[\"tests\"]} passed)')
-        
-        summary_lines.extend([
-            '',
-            '### 📈 Quality Gates',
-            f'- **Overall Pass Rate:** {\"✅ PASS\" if pass_rate >= 0.8 else \"❌ FAIL\"} (Actual: {pass_rate:.1%}, Required: ≥80%)',
-            f'- **No Critical Failures:** {\"✅ PASS\" if total_errors == 0 else \"❌ FAIL\"} (Critical Errors: {total_errors})',
-            f'- **Agent Coverage:** {\"✅ PASS\" if len(agent_results) >= 3 else \"❌ FAIL\"} (Tested Agents: {len(agent_results)}/3)',
-            f'- **Category Coverage:** {\"✅ PASS\" if len(category_results) >= 3 else \"❌ FAIL\"} (Test Categories: {len(category_results)}/3)',
-            '',
-            '### 🎯 Test Categories Covered',
-            '- **Agentic Behavior & Orchestration:** Task Completion, Tool Interaction, Memory Management',
-            '- **Quality & Safety:** Hallucination Detection, Response Validation, Safety Checks',
-            '- **Integration & Performance:** End-to-end Workflows, Performance Validation, Scalability Tests'
-        ])
-        
-        if build_status == 'FAIL':
-            summary_lines.extend([
-                '',
-                '### 💡 Recommendations',
-                '- Review failed test cases in the detailed test results artifacts',
-                '- Check individual agent configurations and capabilities',
-                '- Verify API connectivity and rate limits',
-                '- Ensure database connectivity and schema are correct',
-                '- Validate environment variables and secrets configuration'
-            ])
-        
-        summary = '\n'.join(summary_lines)
-        
-        # Save comprehensive summary
-        Path('test_results/agents_test').mkdir(parents=True, exist_ok=True)
-        with open('test_results/agents_test/comprehensive_summary.md', 'w') as f:
-            f.write(summary)
-        
-        # Create JSON report for programmatic use
-        report = {
-            'build_status': build_status,
-            'total_tests': total_tests,
-            'passed': passed,
-            'failed': total_failures + total_errors,
-            'pass_rate': pass_rate,
-            'execution_time': total_time,
-            'agent_results': agent_results,
-            'category_results': category_results,
-            'quality_gates': {
-                'pass_rate_gate': {
-                    'passed': pass_rate >= 0.8,
-                    'actual': pass_rate,
-                    'threshold': 0.8
-                },
-                'no_critical_failures': {
-                    'passed': total_errors == 0,
-                    'actual': total_errors,
-                    'threshold': 0
-                },
-                'agent_coverage': {
-                    'passed': len(agent_results) >= 3,
-                    'actual': len(agent_results),
-                    'threshold': 3
-                },
-                'category_coverage': {
-                    'passed': len(category_results) >= 3,
-                    'actual': len(category_results),
-                    'threshold': 3
-                }
-            }
-        }
-        
-        with open('test_results/agents_test/comprehensive_report.json', 'w') as f:
-            json.dump(report, f, indent=2)
-        
-        print(f'Generated comprehensive test report: {build_status}')
-        print(f'Total tests: {total_tests}, Pass rate: {pass_rate:.1%}')
-        "
-    
-    - name: Upload Comprehensive Test Results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: comprehensive-agent-test-results
-        path: test_results/agents_test/
-        retention-days: 90
-    
-    - name: Comment Comprehensive Results on PR
-      if: github.event_name == 'pull_request'
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const fs = require('fs');
-          
-          try {
-            const summaryPath = 'test_results/agents_test/comprehensive_summary.md';
-            if (fs.existsSync(summaryPath)) {
-              const summary = fs.readFileSync(summaryPath, 'utf8');
-              
-              await github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: summary
-              });
-            }
-          } catch (error) {
-            console.log('Could not post comprehensive test results:', error);
-          }
+        echo "All agent tests completed. Check individual job results above."
 
   agents-performance-tests:
     name: Agent Performance Tests
@@ -399,9 +181,6 @@ jobs:
         python -m pytest \
           test_integration.py::TestPerformanceAndScalability \
           --tb=short \
-          --junit-xml=../test_results/performance/junit.xml \
-          --html=../test_results/performance/report.html \
-          --self-contained-html \
           -v
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -412,14 +191,6 @@ jobs:
         DB_USER: ai
         DB_PASS: ai
         DB_DATABASE: ai
-    
-    - name: Upload Performance Results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: agent-performance-test-results
-        path: test_results/performance/
-        retention-days: 30
 
   agents-safety-scan:
     name: Agent Safety & Quality Scan
@@ -470,9 +241,6 @@ jobs:
         python -m pytest \
           test_quality_safety.py \
           --tb=short \
-          --junit-xml=../test_results/safety/junit.xml \
-          --html=../test_results/safety/report.html \
-          --self-contained-html \
           -v
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -483,16 +251,9 @@ jobs:
         DB_USER: ai
         DB_PASS: ai
         DB_DATABASE: ai
-    
+
     - name: Run Code Security Scan
       run: |
         pip install bandit[toml]
-        bandit -r agents_test/ -f json -o test_results/safety/security-report.json || true
-    
-    - name: Upload Safety Results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: agent-safety-test-results
-        path: test_results/safety/
-        retention-days: 30
+        bandit -r agents_test/ -f json -o security-report.json || true
+        echo "Security scan completed. Check bandit output above for any issues."
