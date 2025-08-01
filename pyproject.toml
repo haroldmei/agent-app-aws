@@ -64,3 +64,8 @@ no-annotate = true
 
 [tool.pytest.ini_options]
 log_cli = true
+
+[dependency-groups]
+dev = [
+    "pytest-asyncio>=1.1.0",
+]
