@@ -49,6 +49,20 @@ def run_tests(category: str = "all", agent_filter: str = "all", verbose: bool = 
     # Change to test directory
     test_dir = Path(__file__).parent
     
+    # Create test results directory if it doesn't exist
+    results_dir = test_dir / "test-results"
+    results_dir.mkdir(exist_ok=True)
+    
+    # Add JUnit XML output for CI
+    cmd.extend(["--junitxml", str(results_dir / "junit.xml")])
+    
+    # Add HTML report if pytest-html is available
+    try:
+        import pytest_html  # noqa: F401
+        cmd.extend(["--html", str(results_dir / "report.html"), "--self-contained-html"])
+    except ImportError:
+        pass
+    
     # Run pytest
     result = subprocess.run(cmd, cwd=test_dir)
     return result.returncode

@@ -1,5 +1,7 @@
 # Agent Scenario Test Suite
 
+[![Scenario QA Tests](https://github.com/haroldmei/agent-app-aws/actions/workflows/scenario-qa-tests.yml/badge.svg)](https://github.com/haroldmei/agent-app-aws/actions/workflows/scenario-qa-tests.yml)
+
 This test suite provides comprehensive validation for the agents defined in the `agents` folder using the langwatch scenario framework, following the pattern established in the `agno_example` folder.
 
 ## Test Categories
@@ -196,6 +198,56 @@ pytest agents_scenario_test/ --tb=short
 # With specific markers
 pytest agents_scenario_test/ -m "agent_test and not slow" --tb=short
 
+# With coverage (if configured)
+pytest agents_scenario_test/ --cov=agents --cov-report=term-missing
+```
+
+## CI/CD Integration
+
+### Automated Testing
+The scenario test suite is integrated with GitHub Actions through the `scenario-qa-tests.yml` workflow:
+
+#### Triggers
+- **Push/Pull Request**: Tests run on main and develop branches when scenario test files change
+- **Scheduled**: Nightly tests at 3 AM UTC to catch regressions
+- **Manual**: On-demand testing with customizable parameters via workflow dispatch
+
+#### Test Matrix
+The CI runs tests in multiple configurations:
+- **Individual Categories**: Each test category (task, tool, flow, hallucination, integration) runs separately
+- **Comprehensive Suite**: All tests run together for complete validation
+- **Agent-Specific**: Tests can be filtered by agent (sage, scholar, or all)
+
+#### Environment Setup
+- **Python 3.13**: Latest Python version for optimal performance
+- **PostgreSQL**: Full database setup with pgvector extension
+- **Dependencies**: Automated installation of all required packages via uv
+- **Environment Variables**: Secure handling of API keys and database credentials
+
+#### Test Artifacts
+- Test results and logs are uploaded as artifacts for debugging
+- Results retained for 7-14 days depending on test scope
+- Comprehensive reporting with status summaries
+
+### Running Tests Locally
+
+#### Development Setup
+```bash
+# Install dependencies
+pip install -r requirements.txt
+pip install -r ../requirements.txt
+
+# Set up environment variables
+export OPENAI_API_KEY="your-api-key"
+export LANGWATCH_API_KEY="your-langwatch-key"
+export RUNTIME_ENV="test"
+
+# Run tests with the test runner
+python run_tests.py --category=all --verbose
+```
+
+#### Production Environment
+```bash
 # With coverage (if configured)
 pytest agents_scenario_test/ --cov=agents --cov-report=term-missing
 ```

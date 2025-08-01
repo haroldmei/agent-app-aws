@@ -1,0 +1,345 @@
+name: Scenario-Based Quality Assurance Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'agents_scenario_test/**'
+      - 'agents/**'
+      - '.github/workflows/scenario-qa-tests.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'agents_scenario_test/**'
+      - 'agents/**'
+      - '.github/workflows/scenario-qa-tests.yml'
+  schedule:
+    # Run nightly tests at 3 AM UTC (offset from other QA tests)
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      test_category:
+        description: 'Test category to run'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - task
+          - tool
+          - flow
+          - hallucination
+          - integration
+      agent_filter:
+        description: 'Agent to test'
+        required: false
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - sage
+          - scholar
+      verbose:
+        description: 'Verbose output'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  PYTHON_VERSION: '3.13'
+  
+jobs:
+  scenario-tests:
+    name: Scenario-Based Agent Testing
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    
+    services:
+      postgres:
+        image: agnohq/pgvector:16
+        env:
+          POSTGRES_DB: ai
+          POSTGRES_USER: ai
+          POSTGRES_PASSWORD: ai
+          PGDATA: /var/lib/postgresql/data/pgdata
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    strategy:
+      matrix:
+        include:
+          - category: "task"
+            name: "Task Completion"
+          - category: "tool"
+            name: "Tool Interaction"
+          - category: "flow"
+            name: "Conversational Flow"
+          - category: "hallucination"
+            name: "Hallucination Detection"
+          - category: "integration"
+            name: "Integration Tests"
+      fail-fast: false
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/pip
+          ~/.cache/uv
+        key: ${{ runner.os }}-scenario-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements.txt', '**/agents_scenario_test/requirements.txt', '**/uv.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-scenario-${{ env.PYTHON_VERSION }}-
+          ${{ runner.os }}-scenario-
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+    
+    - name: Install project dependencies
+      run: |
+        # Install main project dependencies
+        uv pip install --system -r requirements.txt
+        
+        # Install scenario test dependencies
+        uv pip install --system -r agents_scenario_test/requirements.txt
+        
+        # Install project in editable mode
+        uv pip install --system -e .
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U ai; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+        echo "PostgreSQL is ready!"
+
+    - name: Set up environment variables
+      run: |
+        echo "RUNTIME_ENV=test" >> $GITHUB_ENV
+        echo "DB_HOST=localhost" >> $GITHUB_ENV
+        echo "DB_PORT=5432" >> $GITHUB_ENV
+        echo "DB_USER=ai" >> $GITHUB_ENV
+        echo "DB_PASS=ai" >> $GITHUB_ENV
+        echo "DB_DATABASE=ai" >> $GITHUB_ENV
+        echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+        echo "LANGWATCH_API_KEY=${{ secrets.LANGWATCH_API_KEY }}" >> $GITHUB_ENV
+
+    - name: Run Database Migrations
+      run: |
+        cd db
+        alembic upgrade head
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USER: ai
+        DB_PASS: ai
+        DB_DATABASE: ai
+
+    - name: Run ${{ matrix.name }} Tests
+      run: |
+        cd agents_scenario_test
+        python run_tests.py \
+          --category=${{ matrix.category }} \
+          --agent=${{ github.event.inputs.agent_filter || 'all' }} \
+          ${{ github.event.inputs.verbose == 'true' && '--verbose' || '' }}
+      env:
+        RUNTIME_ENV: test
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USER: ai
+        DB_PASS: ai
+        DB_DATABASE: ai
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        LANGWATCH_API_KEY: ${{ secrets.LANGWATCH_API_KEY }}
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: scenario-test-results-${{ matrix.category }}
+        path: |
+          agents_scenario_test/test-results/
+          agents_scenario_test/.pytest_cache/
+        retention-days: 7
+
+  scenario-tests-all:
+    name: Run All Scenario Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    if: github.event.inputs.test_category == 'all' || github.event.inputs.test_category == '' || github.event_name != 'workflow_dispatch'
+    
+    services:
+      postgres:
+        image: agnohq/pgvector:16
+        env:
+          POSTGRES_DB: ai
+          POSTGRES_USER: ai
+          POSTGRES_PASSWORD: ai
+          PGDATA: /var/lib/postgresql/data/pgdata
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Cache dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/pip
+          ~/.cache/uv
+        key: ${{ runner.os }}-scenario-all-${{ env.PYTHON_VERSION }}-${{ hashFiles('**/requirements.txt', '**/agents_scenario_test/requirements.txt', '**/uv.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-scenario-all-${{ env.PYTHON_VERSION }}-
+          ${{ runner.os }}-scenario-all-
+    
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+    
+    - name: Install project dependencies
+      run: |
+        # Install main project dependencies
+        uv pip install --system -r requirements.txt
+        
+        # Install scenario test dependencies
+        uv pip install --system -r agents_scenario_test/requirements.txt
+        
+        # Install project in editable mode
+        uv pip install --system -e .
+
+    - name: Wait for PostgreSQL
+      run: |
+        until pg_isready -h localhost -p 5432 -U ai; do
+          echo "Waiting for PostgreSQL..."
+          sleep 2
+        done
+        echo "PostgreSQL is ready!"
+
+    - name: Set up environment variables
+      run: |
+        echo "RUNTIME_ENV=test" >> $GITHUB_ENV
+        echo "DB_HOST=localhost" >> $GITHUB_ENV
+        echo "DB_PORT=5432" >> $GITHUB_ENV
+        echo "DB_USER=ai" >> $GITHUB_ENV
+        echo "DB_PASS=ai" >> $GITHUB_ENV
+        echo "DB_DATABASE=ai" >> $GITHUB_ENV
+        echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> $GITHUB_ENV
+        echo "LANGWATCH_API_KEY=${{ secrets.LANGWATCH_API_KEY }}" >> $GITHUB_ENV
+
+    - name: Run Database Migrations
+      run: |
+        cd db
+        alembic upgrade head
+      env:
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USER: ai
+        DB_PASS: ai
+        DB_DATABASE: ai
+
+    - name: Run All Scenario Tests
+      run: |
+        cd agents_scenario_test
+        python run_tests.py \
+          --category=all \
+          --agent=${{ github.event.inputs.agent_filter || 'all' }} \
+          ${{ github.event.inputs.verbose == 'true' && '--verbose' || '' }}
+      env:
+        RUNTIME_ENV: test
+        DB_HOST: localhost
+        DB_PORT: 5432
+        DB_USER: ai
+        DB_PASS: ai
+        DB_DATABASE: ai
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        LANGWATCH_API_KEY: ${{ secrets.LANGWATCH_API_KEY }}
+
+    - name: Upload comprehensive test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: scenario-test-results-comprehensive
+        path: |
+          agents_scenario_test/test-results/
+          agents_scenario_test/.pytest_cache/
+          agents_scenario_test/*.log
+        retention-days: 14
+
+  notify-results:
+    name: Notify Test Results
+    runs-on: ubuntu-latest
+    needs: [scenario-tests, scenario-tests-all]
+    if: always()
+    
+    steps:
+    - name: Determine overall result
+      id: result
+      run: |
+        if [[ "${{ needs.scenario-tests.result }}" == "success" && "${{ needs.scenario-tests-all.result }}" == "success" ]]; then
+          echo "status=success" >> $GITHUB_OUTPUT
+          echo "message=✅ All scenario-based QA tests passed!" >> $GITHUB_OUTPUT
+        elif [[ "${{ needs.scenario-tests.result }}" == "failure" || "${{ needs.scenario-tests-all.result }}" == "failure" ]]; then
+          echo "status=failure" >> $GITHUB_OUTPUT
+          echo "message=❌ Some scenario-based QA tests failed!" >> $GITHUB_OUTPUT
+        else
+          echo "status=cancelled" >> $GITHUB_OUTPUT
+          echo "message=⚠️ Scenario-based QA tests were cancelled or skipped!" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create summary
+      run: |
+        echo "## Scenario-Based QA Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "${{ steps.result.outputs.message }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Test Jobs Status:" >> $GITHUB_STEP_SUMMARY
+        echo "- Individual Category Tests: ${{ needs.scenario-tests.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "- Comprehensive All Tests: ${{ needs.scenario-tests-all.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Test Categories Covered:" >> $GITHUB_STEP_SUMMARY
+        echo "- 🎯 Task Completion Tests" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔧 Tool Interaction Tests" >> $GITHUB_STEP_SUMMARY
+        echo "- 💬 Conversational Flow Tests" >> $GITHUB_STEP_SUMMARY
+        echo "- 🚨 Hallucination Detection Tests" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔗 Integration Tests" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Agents Tested:" >> $GITHUB_STEP_SUMMARY
+        echo "- 🧙 Sage Agent" >> $GITHUB_STEP_SUMMARY
+        echo "- 📚 Scholar Agent" >> $GITHUB_STEP_SUMMARY
