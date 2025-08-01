@@ -34,6 +34,8 @@ This test suite provides comprehensive validation for the agents defined in the 
 - **Interruption Handling**: Tests managing conversation interruptions and resumptions
 - **Learning Adaptation**: Tests adaptation based on user feedback
 
+**Note on Test Criteria**: Some tests have been updated to be more resilient to environmental factors. For example, web search tests now check for "attempts to search" or "acknowledges limitations" rather than requiring successful tool execution, which may be affected by network conditions or rate limits in CI environments.
+
 ### 2. Generative AI Quality & Safety Tests
 
 #### Hallucination Detection Tests (`test_hallucination_detection.py`)

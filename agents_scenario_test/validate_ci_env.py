@@ -90,6 +90,7 @@ def run_sample_test() -> bool:
                 "test_task_completion.py::test_sage_knowledge_retrieval_task",
                 "-v",
                 "--tb=short",
+                "-s",  # Add -s to see print statements
             ],
             cwd=test_dir,
             capture_output=True,
@@ -101,8 +102,11 @@ def run_sample_test() -> bool:
             return True
         else:
             print("❌ Sample test failed:")
+            print("STDOUT:")
             print(result.stdout)
+            print("STDERR:")
             print(result.stderr)
+            print(f"Return code: {result.returncode}")
             return False
             
     except Exception as e:
