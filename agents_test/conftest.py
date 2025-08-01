@@ -3,7 +3,13 @@ Test suite configuration and fixtures for agent validation.
 """
 import pytest
 import asyncio
+import sys
+from pathlib import Path
 from typing import Optional
+
+# Add the parent directory to sys.path to import agents
+sys.path.append(str(Path(__file__).parent.parent))
+
 from agents.sage import get_sage
 from agents.scholar import get_scholar
 from agents.operator import AgentType, get_agent
@@ -18,7 +24,7 @@ def event_loop():
 
 
 @pytest.fixture
-async def sage_agent():
+def sage_agent():
     """Fixture for Sage agent."""
     return get_sage(
         model_id="gpt-4o-mini",
@@ -29,7 +35,7 @@ async def sage_agent():
 
 
 @pytest.fixture
-async def scholar_agent():
+def scholar_agent():
     """Fixture for Scholar agent."""
     return get_scholar(
         model_id="gpt-4o-mini",
@@ -40,7 +46,7 @@ async def scholar_agent():
 
 
 @pytest.fixture
-async def operator_agent():
+def operator_agent():
     """Fixture for Operator agent."""
     return get_agent(
         model_id="gpt-4o-mini",

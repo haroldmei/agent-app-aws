@@ -64,8 +64,20 @@ no-annotate = true
 
 [tool.pytest.ini_options]
 log_cli = true
+markers = [
+    "agent_test: marks tests as agent validation tests",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "behavior: marks tests as behavior validation tests",
+    "safety: marks tests as safety validation tests",
+    "asyncio: marks tests as async tests",
+]
+
+[tool.pytest_asyncio]
+asyncio_mode = "auto"
 
 [dependency-groups]
 dev = [
+    "pytest>=8.0.0",
     "pytest-asyncio>=1.1.0",
 ]
