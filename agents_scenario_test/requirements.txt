@@ -1,0 +1,4 @@
+agno>=1.6.4
+langwatch-scenario
+pytest>=7.0.0
+pytest-asyncio>=0.21.0

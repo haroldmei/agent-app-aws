@@ -1,0 +1,25 @@
+[project]
+name = "agents-scenario-test"
+version = "0.1.0"
+description = "Scenario-based testing for agent applications"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "agno",
+    "langwatch-scenario",
+    "pytest",
+    "pytest-asyncio",
+]
+
+[tool.pytest.ini_options]
+markers = [
+    "agent_test: marks tests as agent tests",
+    "slow: marks tests as slow",
+    "integration: marks tests as integration tests",
+]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
