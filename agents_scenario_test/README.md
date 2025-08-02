@@ -316,3 +316,14 @@ CI errors related to `alembic upgrade` path problems:
 - **Command**: `alembic -c db/alembic.ini upgrade head`
 
 This test suite ensures comprehensive validation of agent capabilities while maintaining the flexibility and power of the langwatch scenario framework.
+
+
+python run_tests.py --category=task --agent=all
+
+python run_tests.py --category=tool --agent=all
+
+python run_tests.py --category=flow --agent=all
+
+python run_tests.py --category=hallucination --agent=all
+
+python run_tests.py --category=integration --agent=all
